@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="shell.css">
+    <title>event-loop test</title>
+</head>
+<body style="height: 2000px;">
+
+<button id="testButton" onclick="startTest()" style="font-size:xx-large">Redo test</script>
+<div style="overflow:hidden">
+    <div id="slider"></div>
+</div>
+<script>
+'use strict';
+
+var RESULTS = [];
+
+function addResultToDocument(msg, type) {
+    let el = document.createElement('div');
+    if (type)
+        el.classList.add(type);
+    el.classList.add('result');
+    el.innerText = msg;
+    document.body.appendChild(el);
+}
+
+function reportError(msg) {
+    addResultToDocument(msg, 'error');
+}
+
+function log(...args) {
+    let line = args.join(' ');
+    console.log(Math.round(performance.now()*100)/100 + ' ' + line);
+    RESULTS.push(line);
+}
+
+function assertOrder(r1, r2, msg) {
+    var i1 = RESULTS.indexOf(r1);
+    var i2 = RESULTS.indexOf(r2);
+    if (i1 == -1)
+        reportError(r1 + " not found");
+    if (i2 == -1)
+        reportError(r2 + " not found");
+    if (i2 <= i1)
+        reportError('"' + r1 + '" before "' + r2 + '": ' + msg);
+}
+
+function endTest() {
+// Promise/rAF asserts
+    assertOrder("script end", "promise 0", "promise handlers executed after script");
+    assertOrder("promise 0", "promise 1", "promise handlers in order");
+
+    assertOrder("rAF 0", "rAF 1", "rAF in order");
+
+    assertOrder("promise 0", "rAF 0", "rAF after promise handlers");
+
+    assertOrder("promise 0", "timeout 0", "timeout after promise handlers");
+    assertOrder("rAF 0 promise", "rAF 1", "promise handler immediately after rAF");
+
+    let p1 = RESULTS.indexOf('promise 1'), p0 = RESULTS.indexOf('promise 0');
+    if ((p1 - p0) != 1)
+        reportError("Microtasks queue not executed all at once, distance is " + (p1 - p0) );
+
+// render events
+    assertOrder("matchMedia", "resize", "matchMedia before resize");
+    assertOrder("resize", "scroll", "resize before scroll");
+    assertOrder("scroll", "rAF 0", "scroll before rAF");
+    assertOrder("animationstart", "rAF 0", "css animation starts before rAF");
+
+  //  addResultToDocument("rAF and timeout order is unspecified", "warn");
+    if (!document.querySelector('.error'))
+        addResultToDocument('tests passed');
+
+    document.querySelector('#slider').classList.remove('animate');
+}
+
+
+function startTest() {
+    RESULTS = [];
+    log("script start");
+    for (let el of document.querySelectorAll('.result'))
+        el.parentNode.removeChild(el);
+
+// rAF
+
+    window.requestAnimationFrame( _ => {
+        log("rAF 0");
+        new Promise( (fulfill, reject) => {
+            fulfill();
+        })
+        .then(_ => {
+            log("rAF 0 promise");
+        });
+    });
+
+    window.requestAnimationFrame( _ => {
+        log("rAF 1");
+    });
+
+// timeouts
+
+    window.setTimeout(_ => { log('timeout 0');}, 0);
+
+    window.setTimeout(_ => { log('timeout 1');}, 0);
+
+// Promises
+    let p = new Promise( (fulfill, reject) => {
+        fulfill();
+        // log("promise 0 fulfill");
+    })
+    .then(_ => {
+        log("promise 0");
+        return new Promise( fulfill => {
+            fulfill();
+        });
+    })
+    .then(_ => {
+        log("promise 1");
+    });
+
+// CSS Animation
+    document.querySelector('#slider').classList.remove('animate');
+    document.querySelector('#slider').classList.add('animate');
+
+// Scrolling
+
+    window.scrollBy(0,10);
+
+// Resize
+    window.parent.document.querySelector('iframe').width = "450px";
+
+
+// Test end
+    window.setTimeout(_ => { endTest(); }, 500);
+
+    log("script end");
+
+}
+
+// iframe setup
+window.addEventListener('resize', _ => {
+    log('resize');
+});
+window.addEventListener('scroll', _ => {
+    log('scroll');
+});
+window.matchMedia("(min-width: 400px)").addListener( _ => {
+    log('matchMedia');
+});
+document.querySelector('#slider').addEventListener('animationstart', _=> {
+    log('animationstart');
+});
+
+window.addEventListener('message', ev => {
+    console.log('message', ev.data);
+    switch(ev.data) {
+        case 'startTest':
+            window.requestAnimationFrame(startTest);
+            break;
+        default:
+            break;
+    }
+});
+
+</script>
+</body>
+</html>

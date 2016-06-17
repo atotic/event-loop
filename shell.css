@@ -1,0 +1,46 @@
+    button {
+        font-size: xx-large;
+
+    }
+    .result {
+        margin-top: 8px;
+        padding: 8px;
+        color: green;
+        border-radius: 5px;
+        border: 1px solid green;
+        font-size: initial;
+    }
+    .result.error {
+        color: red;
+        background-color: rgba(255,0,0,0.2);
+        border: 1px solid red;
+    }
+    .result.warn {
+        color: #424218;
+        background-color: rgba(255,255, 0, 0.2);
+        border: 1px solid yellow;
+    }
+    iframe {
+        margin-top: 16px;
+        display:block;
+    }
+
+    .animate {
+        animation-duration: 0.2s;
+        animation-name: slidein;
+    }
+    @keyframes slidein {
+        from {
+            margin-left: 100%;
+            width: 100%;
+        }
+        to {
+            margin-left: 0%;
+            width: 100%;
+        }
+    }
+    #slider {
+        background-color: blue;
+        width: 50px;
+        height: 1px;
+    }

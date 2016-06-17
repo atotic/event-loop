@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="shell.css">
+    <title>event-loop test</title>
+</head>
+<body>
+<button id="testiframeButton" onclick="startTestInIFrame()" style="font-size:xx-large">Start test in iFrame</button>
+<script>
+'use strict';
+
+
+
+function startTestInIFrame() {
+    for (let el of document.querySelectorAll('iframe'))
+        el.parentNode.removeChild(el);
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('src', 'test.html');
+    iframe.width = '300px';
+    iframe.height = '300px';
+    document.body.appendChild(iframe);
+
+    window.setTimeout(_ => {
+        // debugger;
+        iframe.contentWindow.postMessage('startTest', '*');
+        // iframe.width = "450px";
+        // window.requestAnimationFrame(_ => {
+            // iframe.width = "451px";
+        // });
+    }, 300);
+}
+
+</script>
+</body>
+</html>

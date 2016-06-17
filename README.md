@@ -35,24 +35,15 @@ The event loop is the mastermind that orchestrates:
 
 * paint: when do DOM changes get rendered
 
-It is formally specified in whatwg's [HTML standard](https://html.spec.whatwg.org/#event-loops).
+It is formally specified in whatwg's [HTML standard](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops).
 
 The current specification is incomplete. The event loop behavior differs between browsers. Further work is being done to clarify the issues:
 
 * [Rendering Processing Model](https://docs.google.com/document/d/1Mw6qNw8UAEfW96CXaXRVYPPZjqQS3YdK7v57wFttAhs/edit?pref=2&pli=1#)
 
+* [Discussion on event order](https://github.com/w3c/pointerevents/issues/9)
+
 This document is a developer-oriented description of what event loop does. It tries to be readable, and might skip over edge cases for clarity.
-
-## Why is the event loop interesting?
-
-Event loop is in charge.
-All the application code is scheduled for execution by the event loop.
-
-Event loop is interesing because it influences performance and correctness of your app.
-
-If your event loop takes more than 16ms, animations might skip a frame. If your code is split into multiple event handlers, Promise callbacks, timeouts, observers, in what order will the code execute? Do you really need to `setTimeout(_=>{doIt();}, 1)` because things were not executing in the right order?
-
-Understanding the event loop will help you understand when your code gets executed, and its performance implications.
 
 ## Event loop description
 
@@ -68,21 +59,33 @@ This is what the spec says:
         },
 
         microtaskQueue: [
-            // microtasks are:
-            // - completed promises
         ],
 
+        nextTask: function() {
+            // Spec says:
+            // "Select the oldest task on one of the event loop's task queues"
+            // Which gives browser implementers freedom to implement
+            // task queues
+            for (let q of taskQueues)
+                if (q.length > 0)
+                    return q.shift();
+            return null;
+        },
+
         executeMicrotasks: function() {
+            if (scriptExecuting)
+                return;
             let microtasks = this.microtaskQueue;
             this.microtaskQueue = [];
             for (let t of microtasks)
                 t.execute();
         },
-        needsPaint: function() {
-            return vSyncTime() && needsDomRepaint();
+
+        needsRendering: function() {
+            return vSyncTime() && needsDomRerender();
         },
 
-        paintPipeline: function() {
+        render: function() {
             resizeSteps();
             scrollSteps();
             mediaQuerySteps();
@@ -93,8 +96,10 @@ This is what the spec says:
 
             intersectionObserverSteps();
 
-            updateStyle();
-            updateLayout();
+            while (resizeObserverSteps()) {
+                updateStyle();
+                updateLayout();
+            }
             paint();
         }
     }
@@ -105,62 +110,11 @@ This is what the spec says:
             task.execute();
         }
         eventLoop.executeMicrotasks();
-        if (eventLoop.needsPaint())
-            eventLoop.paintPipeline();
+        if (eventLoop.needsRendering())
+            eventLoop.render();
     }
 
-This is what really happens in Chrome:
-
-    eventLoop = {
-        taskQueues: {
-            events: [], // UI events from native GUI framework
-            parser: [], // HTML parser
-            callbacks: [], // setTimeout, requestIdleTask
-            resources: [], // image loading
-            domManipulation[]
-        },
-
-        microtasks: [
-            // microtasks are:
-            // - completed promises
-        ],
-
-        executeMicrotasks: function() {
-            let microtasks = this.microtasks;
-            this.microtasks = [];
-            for (let t of microtasks)
-                t.execute();
-        },
-        needsPaint: function() {
-            return vSyncTime() && needsDomRepaint();
-        },
-
-        paintPipeline: function() {
-            mediaQuerySteps();
-            resizeSteps();
-            scrollSteps();
-            cssAnimationSteps();
-            fullscreenRenderingSteps();
-
-            animationFrameCallbackSteps();
-
-            intersectionObserverSteps();
-
-            updateStyle();
-            updateLayout();
-            paint();
-        }
-    }
-
-    while(true) {
-        task = eventLoop.nextTask();
-        if (task) {
-            task.execute();
-        }
-        eventLoop.executeMicrotasks();
-        if (eventLoop.needsPaint())
-            eventLoop.paintPipeline();
-    }
+## Chrome implementation of the event loop
 
 ### Events
 
@@ -184,19 +138,28 @@ Also manages requestAnimationFrame requests
 
 sample events: Animation.finish, Animation.cancel, CSSAnimation.animationstart, CSSAnimation.animationiteration(CSSAnimation)
 
-#### 3. ad-hoc dispatch
+#### 3. Custom dispatch
 
-Triggers vary: mouse events, keyboard events, timers.
+Triggers vary: OS events, timers, document/element lifecycle events.
 
-Many events get dispatched immediately, without pausing in a queue.
+Custom dispatch event do not pass through queues, they are fired
+directly.
+
+There are no globally applicable delivery guarantees for custom
+events. Specific events might have event-specific guarantees
+about ordering.
 
 #### 4. Microtask queue
 
 Triggered most often by EndOfTaskRunner.didProcessTask().
-Tasks are run by TaskQueueManager.
-What are tasks? They are used internally by other dispatchers to schedule
-execution.
 
+Tasks are run by TaskQueueManager. They are used internally by other dispatchers to schedule execution.
+
+Microtask queue executes whenever task completes.
+
+sample events: Image.onerror, Image.onload
+
+Microtasks also contain Promise callbacks
 
 ### [Timers](https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Timers)
 
@@ -204,11 +167,11 @@ execution.
 
 Triggered by internal timer when browser is idle.
 
-#### requestAnimationFrame
+#### [requestAnimationFrame](https://html.spec.whatwg.org/multipage/webappapis.html#animation-frames)
 
 Triggered by ScriptedAnimationController, that also handles events.
 
-#### setTimeout, setInterval
+#### [Timers](https://html.spec.whatwg.org/multipage/webappapis.html#timers:dom-setinterval): setTimeout, setInterval
 
 Triggered by WebTaskRunner, which runs on TaskQueue primitive.
 
@@ -222,17 +185,17 @@ There are two ways of watching for changes:
 
 2. Poll: poll for changes when it is time to broadcast.
 
-#### MutationObserver
+#### [MutationObserver](https://dom.spec.whatwg.org/#mutation-observers)
 
 Push-based.
 
 Observations broadcast is placed on microtask queue.
 
-#### IntersectionObserver
+#### [IntersectionObserver](http://rawgit.com/WICG/IntersectionObserver/master/index.html)
 
 Poll-based.
 
-Observations broadcast via timeout.
+Observations poll on layout, broadcast via 100ms timeout.
 
 ### Promises
 
@@ -240,6 +203,35 @@ Completed promises run callbacks after completion.
 
 Callbacks are placed on the microtask queue.
 
+## Developer takeaways
+
+Now we understand the spec, and how Chrome implements it.
+
+Event loop does not say much about when events are dispatched:
+
+1. Events on the same queue are dispatched in order.
+
+2. Events can be dispatched directly, bypassing the event loop task queues.
+
+3. Microtasks get executed immediately after a task.
+
+4. Render part of the loop gets executed on vSync, and delivers events in the following order:
+
+    1. 'resize' event
+
+    2. 'scroll' event
+
+    3. mediaquery listeners
+
+    4. 'CSSAnimation' events
+
+    5. Observers
+
+    6. rAF
+
+## What really happens
+
+We've build a test rig, 'shell.html' that
 ## Multiple event loops and their interaction
 
 ## Examples
