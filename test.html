@@ -67,6 +67,7 @@ function endTest() {
     assertOrder("resize", "scroll", "resize before scroll");
     assertOrder("scroll", "rAF 0", "scroll before rAF");
     assertOrder("animationstart", "rAF 0", "css animation starts before rAF");
+    assertOrder("resize", "animationstart", "css animation starts before rAF");
 
   //  addResultToDocument("rAF and timeout order is unspecified", "warn");
     if (!document.querySelector('.error'))
@@ -122,6 +123,7 @@ function startTest() {
 // CSS Animation
     document.querySelector('#slider').classList.remove('animate');
     document.querySelector('#slider').classList.add('animate');
+
 
 // Scrolling
 

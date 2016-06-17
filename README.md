@@ -114,6 +114,154 @@ This is what the spec says:
             eventLoop.render();
     }
 
+
+
+## Close reading of the spec
+
+Now we understand the spec.
+
+Event loop does not say much about when events are dispatched:
+
+1. Events on the same queue are dispatched in order.
+
+2. Events can be dispatched directly, bypassing the event loop task queues.
+
+3. Microtasks get executed immediately after a task.
+
+4. Render part of the loop gets executed on vSync, and delivers events in the following order:
+
+    1. 'resize' event
+
+    2. 'scroll' event
+
+    3. mediaquery listeners
+
+    4. 'CSSAnimation' events
+
+    5. Observers
+
+    6. rAF
+
+## What really happens
+
+We've built a [test page]( https://rawgit.com/atotic/event-loop/master/shell.html'shell.html). The page simultaneously generates (listed in order):
+
+* 2 requestAnimationFrames
+
+* 2 setTimeout(0)
+
+* 2 chained promises
+
+* CSSAnimation
+
+* scroll event
+
+* resize event
+
+We compare when these callbacks get executed to what is expected by the
+spec. Here are the results from major browsers. Spoiler: they are all different.
+
+### Chrome 51
+
+    301.66 script start
+    302.91 script end
+    303.31 promise 0
+    303.86 promise 1
+    305.43 timeout 0
+    305.83 timeout 1
+    316.21 scroll
+    316.62 matchMedia
+    316.92 resize
+    317.29 animationstart
+    317.62 rAF 0
+    318 rAF 0 promise
+    318.31 rAF 1
+    17ms
+
+Chrome behavior almost matches the spec. Failure:
+
+* scroll event fires before resize event. It looks like Chrome puts scroll and resize on the same task queue.
+
+Chrome's conformance was expected, as spec was written with large
+input by the Chrome team :)
+
+### Firefox 47
+
+    322 script start
+    323.47 animationstart
+    324.58 script end
+    326.2 scroll
+    327.96 matchMedia
+    330.03 resize
+    338.39 promise 0
+    339.13 promise 1
+    339.94 timeout 0
+    341.11 timeout 1
+    356.52 rAF 0
+    357.22 rAF 1
+    362.27 rAF 0 promise
+    40ms
+
+Firefox diverges from the spec:
+
+* scroll event fires before resize event.
+
+* Promises are not on a microtask queue, but a different task queue. Instead of executing immediately after `scriptEnd`, they execute after
+`resize`, and after `rAF 1` instead of `rAF 0`.
+
+* Timeout fires in the middle of the render part of the loop. According to spec, it should fire either before, or after, but not in the middle.
+
+* CSSAnimation event is delivered immediately, and not inside the
+`render` block.
+
+### Safari 9.1.2
+
+    328.17 script start
+    329.32 script end
+    329.53 promise 0
+    329.96 scroll
+    330.24 timeout 0
+    330.38 timeout 1
+    330.5 promise 1
+    330.81 matchMedia
+    332.57 animationstart
+    332.88 resize
+    344.67 rAF 0
+    344.95 rAF 0 promise
+    345.09 rAF 1
+    17ms
+
+Safari diverges from the spec:
+
+* scroll event fires before resize event.
+
+* Chained Promise does not execute immediately, it happens after timeout.
+
+* timeout fires in the middle of `render` block, between `scroll` and `matchMedia`.
+
+### Microsoft Edge XXXX
+
+
+## Conclusion
+
+There are significant differences between browsers' implementation of the event loop. The spec is not helpful in determining what actually happens.
+
+It will be hard for developers to try to understand when is their
+arbitrary code going to get executed. If order of execution is important,
+be careful from the start: architect your ordered callbacks using only
+primitives whose behavior is well understood.
+
+Here are a few rules of thumb:
+
+* callbacks of the same type always execute in order requested. Callbacks of different types execute in unspecified order. Therefore, you should stick to a single type of callback.
+
+* rAF always fire before rendering, no more than 60 times/sec. If your callbacks are manipulating DOM, use rAF, so that you do not disturb layout unless painting.
+
+* timeout(0) fires "in the next task loop". Use sparingly, only if you need high-frequency callbacks that are not tied to drawing.
+
+* Promises fire "sooner than timeout".
+
+
 ## Chrome implementation of the event loop
 
 ### Events
@@ -202,36 +350,6 @@ Observations poll on layout, broadcast via 100ms timeout.
 Completed promises run callbacks after completion.
 
 Callbacks are placed on the microtask queue.
-
-## Developer takeaways
-
-Now we understand the spec, and how Chrome implements it.
-
-Event loop does not say much about when events are dispatched:
-
-1. Events on the same queue are dispatched in order.
-
-2. Events can be dispatched directly, bypassing the event loop task queues.
-
-3. Microtasks get executed immediately after a task.
-
-4. Render part of the loop gets executed on vSync, and delivers events in the following order:
-
-    1. 'resize' event
-
-    2. 'scroll' event
-
-    3. mediaquery listeners
-
-    4. 'CSSAnimation' events
-
-    5. Observers
-
-    6. rAF
-
-## What really happens
-
-We've build a test rig, 'shell.html' that
 ## Multiple event loops and their interaction
 
 ## Examples
