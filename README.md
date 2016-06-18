@@ -1,26 +1,3 @@
-# event-loop
-https://html.spec.whatwg.org/multipage/webappapis.html#processing-model-8
-
-Browsing content has a corresponding WindowProxy object.
-
-Browsing contect can have:
-creator browsing context: (one responsible for creation)
-    it can be parent
-    it can be opener
-    it can be empty
-
-idle tasks
-
-what answers am I trying to find out today?
-- clarify pseudo-code: layout & style recomputation
-- events (aka tasks): clarify handling
-- observers
-- callbacks
-- microtasks
-
-paper strategy:
-- pile on the facts, then edit for clarity
-
 # Event loop explainer
 
 ## What is the event loop?
@@ -33,7 +10,7 @@ The event loop is the mastermind that orchestrates:
 
 * when do layout and style get updated
 
-* paint: when do DOM changes get rendered
+* render: when do DOM changes get rendered
 
 It is formally specified in whatwg's [HTML standard](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops).
 
@@ -144,7 +121,7 @@ Event loop does not say much about when events are dispatched:
 
 ## What really happens
 
-We've built a [test page]( https://rawgit.com/atotic/event-loop/master/shell.html'shell.html). The page simultaneously generates (listed in order):
+We've built a [test page]( https://rawgit.com/atotic/event-loop/master/shell.html). The page simultaneously generates (listed in order):
 
 * 2 requestAnimationFrames
 
@@ -253,14 +230,13 @@ primitives whose behavior is well understood.
 
 Here are a few rules of thumb:
 
-* callbacks of the same type always execute in order requested. Callbacks of different types execute in unspecified order. Therefore, you should stick to a single type of callback.
+* callbacks of the same type always execute in order requested. Callbacks of different types execute in unspecified order. Therefore, you should not mix callback types in your callback chain.
 
 * rAF always fire before rendering, no more than 60 times/sec. If your callbacks are manipulating DOM, use rAF, so that you do not disturb layout unless painting.
 
 * timeout(0) fires "in the next task loop". Use sparingly, only if you need high-frequency callbacks that are not tied to drawing.
 
 * Promises fire "sooner than timeout".
-
 
 ## Chrome implementation of the event loop
 
