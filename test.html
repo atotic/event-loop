@@ -81,8 +81,11 @@ function endTest() {
 function startTest() {
     RESULTS = [];
     log("script start");
-    for (let el of document.querySelectorAll('.result'))
-        el.parentNode.removeChild(el);
+    var oldResults = document.querySelectorAll('.result');
+    for (var i=0; i<oldResults.length; i++)
+        oldResults[i].parentNode.removeChild(oldResults[i]);
+    // for (let el of document.querySelectorAll('.result'))
+    //     el.parentNode.removeChild(el);
 
 // rAF
 

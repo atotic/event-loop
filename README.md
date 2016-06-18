@@ -41,8 +41,8 @@ This is what the spec says:
         nextTask: function() {
             // Spec says:
             // "Select the oldest task on one of the event loop's task queues"
-            // Which gives browser implementers freedom to implement
-            // task queues
+            // Which gives browser implementers lots of freedom
+            // Queues can have different priorities, etc.
             for (let q of taskQueues)
                 if (q.length > 0)
                     return q.shift();
@@ -179,7 +179,7 @@ input by the Chrome team :)
     362.27 rAF 0 promise
     40ms
 
-Firefox diverges from the spec:
+Firefox diverges from the spec.
 
 * scroll event fires before resize event.
 
@@ -218,6 +218,24 @@ Safari diverges from the spec:
 
 ### Microsoft Edge XXXX
 
+    510.09 script start
+    512.08 script end
+    512.4 promise 0
+    512.69 promise 1
+    512.89 timeout 0
+    513.06 timeout 1
+    513.3 animationstart
+    526.24 scroll
+    528.1 rAF 0
+    528.44 rAF 0 promise
+    528.67 rAF 1
+    528.93 matchMedia
+    529.17 resize
+    19ms
+
+Microsoft diverges from the spec. It does well with Promises and timeout,
+but mostly ignores `render` event ordering from the spec, sprinking
+different events all over.
 
 ## Conclusion
 
@@ -326,6 +344,7 @@ Observations poll on layout, broadcast via 100ms timeout.
 Completed promises run callbacks after completion.
 
 Callbacks are placed on the microtask queue.
+
 ## Multiple event loops and their interaction
 
 ## Examples
