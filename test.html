@@ -11,6 +11,7 @@
 <div style="overflow:hidden">
     <div id="slider"></div>
 </div>
+<div id="mutator"></div>
 <script>
 'use strict';
 
@@ -48,25 +49,28 @@ function assertOrder(r1, r2, msg) {
 
 function endTest() {
 // Promise/rAF asserts
-    assertOrder("script end", "promise 0", "promise handlers executed after script");
-    assertOrder("promise 0", "promise 1", "promise handlers in order");
+    assertOrder("script end", "promise A", "promise handlers executed after script");
+    assertOrder("promise A", "promise B", "promise handlers in order");
 
-    assertOrder("rAF 0", "rAF 1", "rAF in order");
+    assertOrder("rAF A", "rAF B", "rAF in order");
 
-    assertOrder("promise 0", "rAF 0", "rAF after promise handlers");
+    assertOrder("promise A", "rAF A", "rAF after promise handlers");
 
-    assertOrder("promise 0", "timeout 0", "timeout after promise handlers");
-    assertOrder("rAF 0 promise", "rAF 1", "promise handler immediately after rAF");
+    assertOrder("promise A", "timeout A", "timeout after promise handlers");
+    assertOrder("rAF A promise", "rAF B", "promise handler immediately after rAF");
 
-    let p1 = RESULTS.indexOf('promise 1'), p0 = RESULTS.indexOf('promise 0');
-    if ((p1 - p0) != 1)
+    let p1 = RESULTS.indexOf('promise B'), p0 = RESULTS.indexOf('promise A');
+    if ((p1 - p0) > 2)
         reportError("Microtasks queue not executed all at once, distance is " + (p1 - p0) );
+
+    assertOrder("promise A", "mutate", "mutate microtask after promise A")
+    assertOrder("mutate", "promise B", "mutate happens before promise B resolves");
 
 // render events
     assertOrder("matchMedia", "resize", "matchMedia before resize");
     assertOrder("resize", "scroll", "resize before scroll");
-    assertOrder("scroll", "rAF 0", "scroll before rAF");
-    assertOrder("animationstart", "rAF 0", "css animation starts before rAF");
+    assertOrder("scroll", "rAF A", "scroll before rAF");
+    assertOrder("animationstart", "rAF A", "css animation starts before rAF");
     assertOrder("resize", "animationstart", "css animation starts before rAF");
 
   //  addResultToDocument("rAF and timeout order is unspecified", "warn");
@@ -90,44 +94,43 @@ function startTest() {
 // rAF
 
     window.requestAnimationFrame( _ => {
-        log("rAF 0");
+        log("rAF A");
         new Promise( (fulfill, reject) => {
             fulfill();
         })
         .then(_ => {
-            log("rAF 0 promise");
+            log("rAF A promise");
         });
     });
 
     window.requestAnimationFrame( _ => {
-        log("rAF 1");
+        log("rAF B");
     });
 
 // timeouts
 
-    window.setTimeout(_ => { log('timeout 0');}, 0);
+    window.setTimeout(_ => { log('timeout A');}, 0);
 
-    window.setTimeout(_ => { log('timeout 1');}, 0);
+    window.setTimeout(_ => { log('timeout B');}, 0);
 
 // Promises
     let p = new Promise( (fulfill, reject) => {
         fulfill();
-        // log("promise 0 fulfill");
+        // log("promise A fulfill");
     })
     .then(_ => {
-        log("promise 0");
+        log("promise A");
         return new Promise( fulfill => {
             fulfill();
         });
     })
     .then(_ => {
-        log("promise 1");
+        log("promise B");
     });
 
 // CSS Animation
     document.querySelector('#slider').classList.remove('animate');
     document.querySelector('#slider').classList.add('animate');
-
 
 // Scrolling
 
@@ -136,6 +139,10 @@ function startTest() {
 // Resize
     window.parent.document.querySelector('iframe').width = "450px";
 
+// Mutations
+    document.querySelector('#mutator').appendChild(
+        document.createElement('div')
+    );
 
 // Test end
     window.setTimeout(_ => { endTest(); }, 500);
@@ -144,19 +151,30 @@ function startTest() {
 
 }
 
-// iframe setup
+// Listeners
+
 window.addEventListener('resize', _ => {
     log('resize');
 });
+
 window.addEventListener('scroll', _ => {
     log('scroll');
 });
+
 window.matchMedia("(min-width: 400px)").addListener( _ => {
     log('matchMedia');
 });
+
 document.querySelector('#slider').addEventListener('animationstart', _=> {
     log('animationstart');
 });
+
+let mutObs = new MutationObserver( entries => {
+    log('mutate');
+});
+
+mutObs.observe(document.querySelector('#mutator'),
+    { childList: true, attributes: true });
 
 window.addEventListener('message', ev => {
     console.log('message', ev.data);
