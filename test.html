@@ -30,8 +30,10 @@ function reportError(msg) {
     addResultToDocument(msg, 'error');
 }
 
-function log(...args) {
-    var line = args.join(' ');
+function log(/*...args*/) {
+    var line = "";
+    for (var i=0; i<arguments.length; i++)
+        line += (i != 0 ? ' ' : '') + arguments[i];
     console.log(Math.round(performance.now()*100)/100 + ' ' + line);
     RESULTS.push(line);
 }
