@@ -16,21 +16,14 @@ function startTestInIFrame() {
     var iframes = document.querySelectorAll('iframe');
     for (var i=0; i<iframes.length; i++)
         iframes[i].parentNode.removeChild(iframes[i]);
-    // for (let el of document.querySelectorAll('iframe'))
-    //     el.parentNode.removeChild(el);
     var iframe = document.createElement('iframe');
     iframe.setAttribute('src', 'test.html');
     iframe.width = '300px';
     iframe.height = '300px';
     document.body.appendChild(iframe);
 
-    window.setTimeout(_ => {
-        // debugger;
+    window.setTimeout(function(ev) {
         iframe.contentWindow.postMessage('startTest', '*');
-        // iframe.width = "450px";
-        // window.requestAnimationFrame(_ => {
-            // iframe.width = "451px";
-        // });
     }, 300);
 }
 

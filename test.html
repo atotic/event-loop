@@ -93,38 +93,38 @@ function startTest() {
 
 // rAF
 
-    window.requestAnimationFrame( _ => {
+    window.requestAnimationFrame( function() {
         log("rAF A");
-        new Promise( (fulfill, reject) => {
+        new Promise( function(fulfill, reject) {
             fulfill();
         })
-        .then(_ => {
+        .then( function() {
             log("rAF A promise");
         });
     });
 
-    window.requestAnimationFrame( _ => {
+    window.requestAnimationFrame( function() {
         log("rAF B");
     });
 
 // timeouts
 
-    window.setTimeout(_ => { log('timeout A');}, 0);
+    window.setTimeout(function() { log('timeout A');}, 0);
 
-    window.setTimeout(_ => { log('timeout B');}, 0);
+    window.setTimeout(function() { log('timeout B');}, 0);
 
 // Promises
-    let p = new Promise( (fulfill, reject) => {
+    let p = new Promise( function(fulfill, reject) {
         fulfill();
         // log("promise A fulfill");
     })
-    .then(_ => {
+    .then(function() {
         log("promise A");
         return new Promise( fulfill => {
             fulfill();
         });
     })
-    .then(_ => {
+    .then(function() {
         log("promise B");
     });
 
@@ -145,7 +145,7 @@ function startTest() {
     );
 
 // Test end
-    window.setTimeout(_ => { endTest(); }, 500);
+    window.setTimeout(function() { endTest(); }, 500);
 
     log("script end");
 
@@ -153,30 +153,30 @@ function startTest() {
 
 // Listeners
 
-window.addEventListener('resize', _ => {
+window.addEventListener('resize', function() {
     log('resize');
 });
 
-window.addEventListener('scroll', _ => {
+window.addEventListener('scroll', function() {
     log('scroll');
 });
 
-window.matchMedia("(min-width: 400px)").addListener( _ => {
+window.matchMedia("(min-width: 400px)").addListener( function() {
     log('matchMedia');
 });
 
-document.querySelector('#slider').addEventListener('animationstart', _=> {
+document.querySelector('#slider').addEventListener('animationstart', function() {
     log('animationstart');
 });
 
-let mutObs = new MutationObserver( entries => {
+let mutObs = new MutationObserver( function(entries) {
     log('mutate');
 });
 
 mutObs.observe(document.querySelector('#mutator'),
     { childList: true, attributes: true });
 
-window.addEventListener('message', ev => {
+window.addEventListener('message', function(ev) {
     console.log('message', ev.data);
     switch(ev.data) {
         case 'startTest':
