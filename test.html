@@ -122,7 +122,7 @@ function startTest() {
     })
     .then(function() {
         log("promise A");
-        return new Promise( fulfill => {
+        return new Promise( function(fulfill) {
             fulfill();
         });
     })
