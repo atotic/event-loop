@@ -18,7 +18,7 @@
 var RESULTS = [];
 
 function addResultToDocument(msg, type) {
-    let el = document.createElement('div');
+    var el = document.createElement('div');
     if (type)
         el.classList.add(type);
     el.classList.add('result');
@@ -31,7 +31,7 @@ function reportError(msg) {
 }
 
 function log(...args) {
-    let line = args.join(' ');
+    var line = args.join(' ');
     console.log(Math.round(performance.now()*100)/100 + ' ' + line);
     RESULTS.push(line);
 }
@@ -59,7 +59,7 @@ function endTest() {
     assertOrder("promise A", "timeout A", "timeout after promise handlers");
     assertOrder("rAF A promise", "rAF B", "promise handler immediately after rAF");
 
-    let p1 = RESULTS.indexOf('promise B'), p0 = RESULTS.indexOf('promise A');
+    var p1 = RESULTS.indexOf('promise B'), p0 = RESULTS.indexOf('promise A');
     if ((p1 - p0) > 2)
         reportError("Microtasks queue not executed all at once, distance is " + (p1 - p0) );
 
@@ -88,7 +88,7 @@ function startTest() {
     var oldResults = document.querySelectorAll('.result');
     for (var i=0; i<oldResults.length; i++)
         oldResults[i].parentNode.removeChild(oldResults[i]);
-    // for (let el of document.querySelectorAll('.result'))
+    // for (var el of document.querySelectorAll('.result'))
     //     el.parentNode.removeChild(el);
 
 // rAF
@@ -114,7 +114,7 @@ function startTest() {
     window.setTimeout(function() { log('timeout B');}, 0);
 
 // Promises
-    let p = new Promise( function(fulfill, reject) {
+    var p = new Promise( function(fulfill, reject) {
         fulfill();
         // log("promise A fulfill");
     })
@@ -169,7 +169,7 @@ document.querySelector('#slider').addEventListener('animationstart', function() 
     log('animationstart');
 });
 
-let mutObs = new MutationObserver( function(entries) {
+var mutObs = new MutationObserver( function(entries) {
     log('mutate');
 });
 
