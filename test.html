@@ -116,10 +116,7 @@ function startTest() {
     window.setTimeout(function() { log('timeout B');}, 0);
 
 // Promises
-    var p = new Promise( function(fulfill, reject) {
-        fulfill();
-        // log("promise A fulfill");
-    })
+    Promise.resolve()
     .then(function() {
         log("promise A");
         return new Promise( function(fulfill) {
