@@ -30,11 +30,14 @@ function reportError(msg) {
     addResultToDocument(msg, 'error');
 }
 
+let startTime = 0;
 function log(/*...args*/) {
     var line = "";
     for (var i=0; i<arguments.length; i++)
         line += (i != 0 ? ' ' : '') + arguments[i];
-    console.log(Math.round(performance.now()*100)/100 + ' ' + line);
+    if (startTime == 0)
+        startTime = performance.now();
+    console.log(Math.round((performance.now()-startTime)*100)/100 + ' ' + line);
     RESULTS.push(line);
 }
 
@@ -136,8 +139,12 @@ function startTest() {
     window.scrollBy(0,10);
 
 // Resize
-    window.parent.document.querySelector('iframe').width = "450px";
-
+    try {
+        window.parent.document.querySelector('iframe').width = "450px";
+    }
+    catch(ex) {
+        console.error('resize not tested, not an iframe');
+    }
 // Mutations
     document.querySelector('#mutator').appendChild(
         document.createElement('div')
@@ -176,7 +183,6 @@ mutObs.observe(document.querySelector('#mutator'),
     { childList: true, attributes: true });
 
 window.addEventListener('message', function(ev) {
-    console.log('message', ev.data);
     switch(ev.data) {
         case 'startTest':
             window.requestAnimationFrame(startTest);

@@ -1,4 +1,307 @@
-### Moving to animation tasks model
+<!doctype html>
+<head>
+  <meta charset="UTF-8">
+  <title>event-loop rendering events</title>
+  <style>
+  .question {
+    font-style: italic;
+  }
+  table {
+    font-family: sans-serif;
+  }
+  .scriptstart {
+    background-color: #DDD;
+  }
+  .scriptend {
+    background-color: #AAA;
+  }
+  .promisea {
+    background-color: rgba(0,0,255, 0.1);
+  }
+  .mutate {
+    background-color: rgba(0,0,255, 0.2);
+  }
+  .promiseb {
+    background-color: rgba(0,0,255, 0.3);
+  }
+  .timeouta {
+    background-color: rgba(255,255,0,0.1);
+  }
+  .timeoutb {
+    background-color: rgba(255,255,0,0.2);
+  }
+  .resize {
+    background-color: rgba(0,255,0,0.1);
+  }
+  .scroll {
+    background-color: rgba(0,255,0,0.2);
+  }
+  .matchmedia {
+    background-color: rgba(0,255,0,0.3);
+  }
+  .animationstart {
+    background-color: rgba(0,255,0,0.4);
+  }
+  .rafa {
+    background-color: rgba(255,255,0,0.3);
+  }
+  .rafapromise {
+    color: rgba(0,0,255, 0.7);
+    background-color: rgba(255,255,0,0.4);
+  }
+  .rafb {
+    background-color: rgba(255,255,0,0.5);
+  }
+  </style>
+</head>
+<h2>A dive into event loop specification</h2>
+
+<p>Event loop
+<a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">specification</a>
+has two main parts:</p>
+<ul>
+  <li>first part deals with task dispatch:
+    <ul>
+      <li>pick a task,
+      <li>execute it
+      <li>perform a microtask checkpoint
+    </ul>
+  <li>second part specifies what happens if rendering update is needed:
+    <ul>
+      <li>execute many pre-rendering steps:
+        <ol>
+          <li>resize
+          <li>scroll
+          <li>media query
+          <li>CSS animations
+          <li>fullscreen
+          <li>animation frame callbacks
+          <li>intersection observer
+        </ol>
+      <li>then paint
+    </ul>
+</ul>
+<p>
+
+<h2>Existing browser conformance to the spec</h2>
+<p>Conformance was tested with a <a href="shell.html">test page</a> that triggers a number of events at once, and records the order in which
+they are executed. Fullscreen events were not tested.</p>
+<p>Here are the results.</p>
+<ol>
+  <li>Microtasks are <span class="promisea">purple</span>.
+  <li><span class="timeouta">Timeout</span> task is used as an indicator for the first part of the event loop.
+  <li><span class="rafa">rAF</span> callback is used as an indicator to the end of the event loop.
+</ol>
+
+<table id="testTable">
+  <thead>
+    <tr>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+<script>
+(function() {
+  'use strict';
+
+  const classMap = [
+    { p: /script start/, c: "scriptstart"},
+    { p: /script end/, c: "scriptend"},
+    { p: /promise A/, c: "promisea"},
+    { p: /mutate/, c: "mutate"},
+    { p: /promise B/, c: "promiseb"},
+    { p: /timeout A/, c: "timeouta"},
+    { p: /timeout B/, c: "timeoutb"},
+    { p: /scroll/, c: "scroll"},
+    { p: /matchMedia/, c: "matchmedia"},
+    { p: /resize/, c: "resize"},
+    { p: /animationstart/, c: "animationstart"},
+    { p: /rAF A$/, c: "rafa"},
+    { p: /rAF A promise$/, c: "rafapromise"},
+    { p: /rAF B$/, c: "rafb"},
+  ];
+  function getClassName(str) {
+    for (let m of classMap) {
+      if (str.match(m.p))
+        return m.c;
+    }
+    console.error("baad");
+    return "";
+  }
+
+  function fillResults(browser, results) {
+    let table = document.querySelector("#testTable");
+    let title = document.createElement('td');
+    title.innerText = browser;
+    table.querySelector('thead').querySelector('tr').appendChild(title);
+    let tbody = table.querySelector('tbody');
+    for (let i=0; i<results.length; ++i) {
+      let td = document.createElement('td');
+      td.classList.add(getClassName(results[i]));
+      td.innerText = results[i];
+      if (i >= tbody.children.length)
+        tbody.appendChild(document.createElement('tr'));
+      tbody.children[i].appendChild(td);
+    }
+  };
+  fillResults("Standard", [
+    "script start",
+    "script end",
+    "promise A",
+    "mutate",
+    "promise B",
+    "timeout A",
+    "timeout B",
+    "resize",
+    "scroll",
+    "matchMedia",
+    "animationstart",
+    "rAF A",
+    "rAF A promise",
+    "rAF B"
+  ]);
+ fillResults("Chrome", [
+    "0.0 script start",
+    "1.2 script end",
+    "1.41 promise A",
+    "1.67 mutate",
+    "2 promise B",
+    "10.73 timeout A",
+    "10.91 timeout B",
+    "13.54 scroll",
+    "13.83 matchMedia",
+    "13.99 resize",
+    "14.2 animationstart",
+    "14.38 rAF A",
+    "14.58 rAF A promise",
+    "14.74 rAF B"
+  ]);
+
+  fillResults("Safari", [
+    "0.0 script start",
+    "12.15 script end",
+    "12.46 promise A",
+    "13.63 mutate",
+    "13.75 timeout A",
+    "13.91 timeout B",
+    "14.86 scroll",
+    "14.9 promise B",
+    "15.19 matchMedia",
+    "17.08 animationstart",
+    "17.23 resize",
+    "29.31 rAF A",
+    "29.48 rAF A promise",
+    "29.53 rAF B",
+  ]);
+  fillResults("Edge", [
+    "0 script start",
+    "1.99 script end",
+    "2.31 promise A",
+    "2.51 mutate",
+    "2.6 promise B",
+    "2.8 timeout A",
+    "2.97 timeout B",
+    "3.21 animationstart",
+    "16.15 scroll",
+    "18.01 rAF A",
+    "18.35 rAF A promise",
+    "18.58 rAF B",
+    "18.84 matchMedia",
+    "19.08 resize",
+  ]);
+  fillResults("Firefox", [
+    "0 script start",
+    "1.25 animationstart",
+    "2.25 script end",
+    "3.06 mutate",
+    "3.98 scroll",
+    "5.05 matchMedia",
+    "5.56 resize",
+    "11.71 promise A",
+    "12.17 promise B",
+    "12.5 timeout A",
+    "13.2 timeout B",
+    "15.75 rAF A",
+    "16.18 rAF B",
+    "18.96 rAF A promise",
+  ]);
+})();
+</script>
+
+<h2>Predictabilty</h2>
+<p>The test shows that predictability is poor.
+This is not surprising.
+Event loop is one of the oldest parts of browser code, and was specified
+after implementation.
+The discrepancies are:</p>
+
+<h3>1. Promises</h3>
+<p>2 browsers diverge from the spec: Safari divergence is minor, <a href="https://bugs.webkit.org/show_bug.cgi?id=160857">bug</a> has been filed. Firefox is <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1193394">aware</a> of the problems, and working on it.</p>
+
+<h3>2. Event predictability</h3>
+<p>There are two ways in which event ordering is broken:</p>
+
+<h4>2.1 Events are fired outside of the event loop</h4>
+<p>Confirming this is tricky. "Start of the loop" cannot be observed directly. Timeout task is used as an approximation for loop start. If browser implements timeouts
+independently of the event loop, this approximation might not hold.
+This might be what's throwing off Firefox results.</p>
+<p>2 browsers diverge from the spec here:</p>
+<p>Edge fires <code>matchMedia</code> and <code>resize</code> outside of the event loop.</p>
+<p>Firefox fires all events outside of the event loop. </p>
+
+<p class="question">What should be done about this? Are Firefox results accurate?</p>
+
+<h4>2.2 Event ordering</h4>
+<p>Every browser does it a little differently, and none of them completely follow the spec.</p>
+<p class="question">either: Should we all fix our ordering to match the spec?</p>
+<p class="question">or: Should the spec be fixed instead?</p>
+<p class="question">What are the reasons for the current ordering in the spec?</p>
+
+<h2>Other issues</h2>
+
+<h3>Specification maintenability</h3>
+<p>Every specification that needs a slot in the paint cycle must add another line to event loop spec.
+</p>
+<p>This is fragile. Currently, "run CSS animations and send events", and
+"run the fullscreen rendering steps" references are missing links. External
+spec has changed, but event loop was not updated.</p>
+<p>We can rewrite the specification. Instead of it being a list of steps, it can become an ordered task queue.</p>
+<p class="question">Should we rewrite existing paint spec as an ordered task queue?</p>
+<p>If we do, there are few design questions</p>
+<p class="question">Task registration is tricky. External specs will have to specify task registration.</p>
+<p class="question">Sort order: tasks still need to be sorted. This sort order must be centralized, global?</p>
+
+<h3>Throttling other events</h3>
+<p>Other events might benefit from throttling. ex: mousemove, pointermove, xhr progress.</p>
+<p>Existing spec does not define any mechanism for throttled events. Touch events
+are currently throttled ad-hoc (Edge, Safari, Chrome for Android?).</p>
+<p>Should we do it, and how we do event throttling has been
+<a href="https://github.com/w3c/pointerevents/issues/9">discussed</a>, but it is not
+settled. The main issue is what to do about dropped events. Leading proposal is
+to keep dropped events available as <a href="https://github.com/w3c/pointerevents/issues/22">getCoalescedEvents</a>
+</p>
+
+<h3>Event suppression</h3>
+<p>We should be aware that spec allows suppression of rendering steps for hidden windows.</p>
+<p>This might cause trouble if we move non-suppresable events into rendering slot.</p>
+
+<h2>Related work</h2>
+<p><a href="http://bit.ly/rendering-pipeline">Rendering Processing Model</a>:
+Rendering pipeline is intertwined with the event loop. Also discusses ordering
+of style/layout updates.</p>
+
+<p>Task Scheduling for w3ctag: <a href="https://github.com/w3ctag/spec-reviews/issues/72">w3ctag</a></p>
+
+
+<h2>Existing spec</h2>
+<pre>
+
+
+
+
+Existing spec:
+### What does existing spec do?
 
 5) Run the resize steps
 
@@ -35,13 +338,15 @@ For each entry in callbacks, in order: invoke the callback, passing now as the o
 Let observer list be a list of all IntersectionObservers whose root is in the DOM tree of document.
 For each observer in observer list:
 
+12) Paint
 
-### Can, and should, this be refactored?
+## Predictablility OKRs
+Concrete standards proposal and tests for event loop behavior
+https://github.com/atotic/event-loop
+Specify that some events fire just before rAF
+Engage other vendors in discussion about which events should be defined to be coupled to rAF, and to what extent their order should be defined Write interop tests for rAF-coupled events
 
-
-
-##
-Existing event loop spec##
+##Existing event loop spec##
   <p>An <span>event loop</span> must continually run through the following steps for as long as it
   exists:</p>
 
@@ -203,3 +508,4 @@ Existing event loop spec##
    <a href="#workers">Web workers</a> section below.</p></li>
 
    <li><p>Return to the <a href="#step1">first step</a> of the <span>event loop</span>.</p></li>
+</pre>
