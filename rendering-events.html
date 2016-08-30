@@ -103,9 +103,8 @@ they are executed. Fullscreen events were not tested.</p>
 </table>
 <script>
 (function() {
-  'use strict';
 
-  let classMap = [
+  var classMap = [
     { p: /script start/, c: "scriptstart"},
     { p: /script end/, c: "scriptend"},
     { p: /promise A/, c: "promisea"},
@@ -122,7 +121,7 @@ they are executed. Fullscreen events were not tested.</p>
     { p: /rAF B$/, c: "rafb"},
   ];
   function getClassName(str) {
-    for (let m of classMap) {
+    for (var m of classMap) {
       if (str.match(m.p))
         return m.c;
     }
@@ -131,13 +130,13 @@ they are executed. Fullscreen events were not tested.</p>
   }
 
   function fillResults(browser, results) {
-    let table = document.querySelector("#testTable");
-    let title = document.createElement('td');
+    var table = document.querySelector("#testTable");
+    var title = document.createElement('td');
     title.innerText = browser;
     table.querySelector('thead').querySelector('tr').appendChild(title);
-    let tbody = table.querySelector('tbody');
-    for (let i=0; i<results.length; ++i) {
-      let td = document.createElement('td');
+    var tbody = table.querySelector('tbody');
+    for (var i=0; i<results.length; ++i) {
+      var td = document.createElement('td');
       td.classList.add(getClassName(results[i]));
       td.innerText = results[i];
       if (i >= tbody.children.length)
