@@ -16,6 +16,7 @@
 'use strict';
 
 var RESULTS = [];
+var TIMED_RESULTS = [];
 
 function addResultToDocument(msg, type) {
     var el = document.createElement('div');
@@ -37,8 +38,10 @@ function log(/*...args*/) {
         line += (i != 0 ? ' ' : '') + arguments[i];
     if (startTime == 0)
         startTime = performance.now();
-    console.log(Math.round((performance.now()-startTime)*100)/100 + ' ' + line);
+    var tick = Math.round((performance.now()-startTime)*100)/100;
+    console.log(tick + ' ' + line);
     RESULTS.push(line);
+    TIMED_RESULTS.push( { event: line, time: tick});
 }
 
 function assertOrder(r1, r2, msg) {
@@ -100,6 +103,13 @@ function startTest() {
 
     window.requestAnimationFrame( function() {
         log("rAF A");
+        if (window.ResizeObserver) {
+            var ro = new ResizeObserver(function(entries) {
+                log("ResizeObserver raf");
+            });
+            ro.observe(document.querySelector('#mutator'));
+        }
+
         new Promise( function(fulfill, reject) {
             fulfill();
         })
@@ -145,6 +155,15 @@ function startTest() {
     catch(ex) {
         console.error('resize not tested, not an iframe');
     }
+
+// ResizeObserver
+    if (window.ResizeObserver) {
+        var ro = new ResizeObserver(function(entries) {
+            log("ResizeObserver script");
+        });
+        ro.observe(document.querySelector('#mutator'));
+    }
+
 // Mutations
     document.querySelector('#mutator').appendChild(
         document.createElement('div')
