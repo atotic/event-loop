@@ -1,3 +1,4 @@
+
 # Event loop explainer
 
 ## What is the event loop?
@@ -59,10 +60,11 @@ This is what the spec says:
         },
 
         needsRendering: function() {
-            return vSyncTime() && needsDomRerender();
+            return vSyncTime() && (needsDomRerender() || hasEventLoopEventsToDispatch());
         },
 
         render: function() {
+            dispatchPendingUIEvents();
             resizeSteps();
             scrollSteps();
             mediaQuerySteps();
@@ -106,18 +108,39 @@ Event loop does not say much about when events are dispatched:
 3. Microtasks get executed immediately after a task.
 
 4. Render part of the loop gets executed on vSync, and delivers events in the following order:
+    1. dispatch pending UI events
 
-    1. 'resize' event
+    2. 'resize' event
 
-    2. 'scroll' event
+    3. 'scroll' event
 
-    3. mediaquery listeners
+    4. mediaquery listeners
 
-    4. 'CSSAnimation' events
+    5. 'CSSAnimation' events
 
-    5. Observers
+    6. Observers
 
-    6. rAF
+    7. rAF
+
+## Pending UI events
+
+There are two classes of UI events:
+
+1. Discrete - those that aren't continuous (eg. mousedown, mouseup,
+   touchstart, touchend)
+
+2. Continuous - mousewheel, wheel, mousemove, pointermove, touchmove.
+
+Continuous events may be coalesced (updating positions, magnitude) with
+matching events (that haven't yet been dispatched) while being held in the
+UI event task queue.
+
+Discrete events should be dispatched right as soon as possible when received
+from the hardware. Continuous events can be held and dispatched in the
+render part of the event loop. Ordering of discrete and continuous events
+must be preserved. If a discrete event is received while a continuous event
+is being held in the queue for the next vSync signal it should run right away
+to prevent the discrete event from being delayed.
 
 ## What really happens
 
@@ -302,6 +325,13 @@ Microtask queue executes whenever task completes.
 sample events: Image.onerror, Image.onload
 
 Microtasks also contain Promise callbacks
+
+#### 5. Main Thread Event Queue
+
+Implementation of the UI event task queue. Events are coalesced in this queue.
+This queue also handles requesting the vSync when continuous events have
+been placed in this task queue.
+
 
 ### [Timers](https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Timers)
 
