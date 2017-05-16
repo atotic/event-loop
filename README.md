@@ -135,12 +135,12 @@ Continuous events may be coalesced (updating positions, magnitude) with
 matching events (that haven't yet been dispatched) while being held in the
 UI event task queue.
 
-Discrete events should be dispatched right as soon as possible when received
-from the hardware. Continuous events can be held and dispatched in the
-render part of the event loop. Ordering of discrete and continuous events
-must be preserved. If a discrete event is received while a continuous event
-is being held in the queue for the next vSync signal it should run right away
-to prevent the discrete event from being delayed.
+Ordering of discrete and continuous events must be preserved. Discrete events
+should be dispatched right as soon as possible when received from the
+hardware. Continuous events can be held and dispatched in the render part
+of the event loop. If a discrete event is received, all continuous events
+in the task queue should run immediately to prevent the discrete event
+from being delayed.
 
 ## What really happens
 
