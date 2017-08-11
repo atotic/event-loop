@@ -79,6 +79,9 @@ This is what the spec says:
                 updateStyle();
                 updateLayout();
             }
+            if (updatedLayout) {
+              scheduleAsyncHoverUpdate();
+            }
             paint();
         }
     }
@@ -141,6 +144,14 @@ hardware. Continuous events can be held and dispatched in the render part
 of the event loop. If a discrete event is received, all continuous events
 in the task queue should run immediately to prevent the discrete event
 from being delayed.
+
+## Asynchronously Update Hover State
+
+After a layout has occurred the user agent will update the hover state of the
+current node since during a layout the position may have shifted from the
+previous hover state. If the hover state changes the CSS hover rule will
+be updated as well mouseout, mouseleave, mouseenter, mouseover will be
+dispatched to the relevant nodes.
 
 ## What really happens
 
