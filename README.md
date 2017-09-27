@@ -73,12 +73,12 @@ This is what the spec says:
 
             animationFrameCallbackSteps();
 
-            intersectionObserverSteps();
 
             while (resizeObserverSteps()) {
                 updateStyle();
                 updateLayout();
             }
+            intersectionObserverObserves();
             paint();
         }
     }
@@ -159,7 +159,7 @@ We've built a [test page]( https://rawgit.com/atotic/event-loop/master/shell.htm
 * resize event
 
 We compare when these callbacks get executed to what is expected by the
-spec. Here are the results from major browsers. Spoiler: they are all different.
+spec. Here are the results from major browsers. Spoiler: they are all different. Pretty graphical analysis also available [here](https://cdn.rawgit.com/atotic/event-loop/caa3cfd4/rendering-events.html)
 
 ### Chrome 51
 
