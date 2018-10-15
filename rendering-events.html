@@ -160,24 +160,23 @@ they are executed. Fullscreen events were not tested.</p>
     "rAF A promise",
     "rAF B"
   ]);
- fillResults("Chrome", [
-    "0.0 script start",
-    "1.2 script end",
-    "1.41 promise A",
-    "1.67 mutate",
-    "2 promise B",
-    "10.73 timeout A",
-    "10.91 timeout B",
-    "13.54 scroll",
-    "13.83 matchMedia",
-    "13.99 resize",
-    "14.2 animationstart",
-    "14.38 rAF A",
-    "14.58 rAF A promise",
-    "14.74 rAF B"
+ fillResults("Chrome 70", [
+    "0.1 script start",
+    "1.4 script end",
+    "1.6 promise A",
+    "1.8 mutate",
+    "2.1 promise B",
+    "4 timeout A",
+    "4.2 timeout B",
+    "14 scroll",
+    "14.2 matchMedia",
+    "14.4 resize",
+    "14.6 animationstart",
+    "14.7 rAF A",
+    "15 rAF A promise",
+    "15.1 rAF B",
   ]);
-
-  fillResults("Safari", [
+  fillResults("Safari 9.1 (needs update)", [
     "0.0 script start",
     "12.15 script end",
     "12.46 promise A",
@@ -193,65 +192,50 @@ they are executed. Fullscreen events were not tested.</p>
     "29.48 rAF A promise",
     "29.53 rAF B",
   ]);
-  fillResults("Edge", [
+  fillResults("Edge 42.1713", [
     "0 script start",
-    "1.99 script end",
-    "2.31 promise A",
-    "2.51 mutate",
-    "2.6 promise B",
-    "2.8 timeout A",
-    "2.97 timeout B",
-    "3.21 animationstart",
-    "16.15 scroll",
-    "18.01 rAF A",
-    "18.35 rAF A promise",
-    "18.58 rAF B",
-    "18.84 matchMedia",
-    "19.08 resize",
+    "2.6 script end",
+    "2.7 promise A",
+    "2.8 mutate",
+    "3 promise B",
+    "6.8 animationstart",
+    "8.3 matchMedia",
+    "8.3 resize",
+    "11.2 timeout A",
+    "11.2 timeout B",
+    "15.2 scroll",
+    "15.5 rAF A",
+    "15.6 rAF A promise",
+    "15.6 rAF B"
   ]);
-  fillResults("Firefox", [
+  fillResults("Firefox 60.2", [
     "0 script start",
-    "1.25 animationstart",
-    "2.25 script end",
-    "3.06 mutate",
-    "3.98 scroll",
-    "5.05 matchMedia",
-    "5.56 resize",
-    "11.71 promise A",
-    "12.17 promise B",
-    "12.5 timeout A",
-    "13.2 timeout B",
-    "15.75 rAF A",
-    "16.18 rAF B",
-    "18.96 rAF A promise",
+    "5 script end",
+    "5 promise A",
+    "6 mutate",
+    "6 promise B",
+    "7 matchMedia",
+    "10 timeout A",
+    "10 timeout B",
+    "15 resize",
+    "16 scroll",
+    "17 animationstart",
+    "17 rAF A",
+    "17 rAF A promise",
+    "17 rAF B"
   ]);
 })();
 </script>
-
 <h2>Predictabilty</h2>
-<p>The test shows that predictability is poor.
-This is not surprising.
-Event loop is one of the oldest parts of browser code, and was specified
-after implementation.
-The discrepancies are:</p>
+<p>The initial test suite was run in Sep 2016, and found many inconsistencies
+  between implementations. I reran the tests in Oct 2018, and predictablity
+is much better now.</p>
 
 <h3>1. Promises</h3>
-<p>2 browsers diverge from the spec: Safari divergence is minor, <a href="https://bugs.webkit.org/show_bug.cgi?id=160857">bug</a> has been filed. Firefox is <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1193394">aware</a> of the problems, and working on it.</p>
+<p>Safari divergence is minor, <a href="https://bugs.webkit.org/show_bug.cgi?id=160857">bug</a> has been filed. This might be out of date in 2018, have not retested Safari.</p>
 
 <h3>2. Event predictability</h3>
-<p>There are two ways in which event ordering is broken:</p>
-
-<h4>2.1 Events are fired outside of the event loop</h4>
-<p>Confirming this is tricky. "Start of the loop" cannot be observed directly. Timeout task is used as an approximation for loop start. If browser implements timeouts
-independently of the event loop, this approximation might not hold.
-This might be what's throwing off Firefox results.</p>
-<p>2 browsers diverge from the spec here:</p>
-<p>Edge fires <code>matchMedia</code> and <code>resize</code> outside of the event loop.</p>
-<p>Firefox fires all events outside of the event loop. </p>
-
-<p class="question">What should be done about this? Are Firefox results accurate?</p>
-
-<h4>2.2 Event ordering</h4>
+<h4>2.1 Event ordering</h4>
 <p>Every browser does it a little differently, and none of them completely follow the spec.</p>
 <p class="question">either: Should we all fix our ordering to match the spec?</p>
 <p class="question">or: Should the spec be fixed instead?</p>
