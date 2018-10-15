@@ -231,12 +231,11 @@ they are executed. Fullscreen events were not tested.</p>
   between implementations. I reran the tests in Oct 2018, and predictablity
 is much better now.</p>
 
-<h3>1. Promises</h3>
-<p>Safari divergence is minor, <a href="https://bugs.webkit.org/show_bug.cgi?id=160857">bug</a> has been filed. This might be out of date in 2018, have not retested Safari.</p>
-
-<h3>2. Event predictability</h3>
-<h4>2.1 Event ordering</h4>
-<p>Every browser does it a little differently, and none of them completely follow the spec.</p>
+<h3>1. Event ordering</h3>
+<p>Every browser orders events a little differently, and none of them completely follow the spec.</p>
+<p>Ordering of promises, mutations, and rAF are consistent among all browsers.</p>
+<p>All browsers fire the rest of the events in the correct part of the event loop,
+but the event order differs.</p>
 <p class="question">either: Should we all fix our ordering to match the spec?</p>
 <p class="question">or: Should the spec be fixed instead?</p>
 <p class="question">What are the reasons for the current ordering in the spec?</p>
