@@ -34,7 +34,7 @@ This tells you to use protocol http, go to server restcountries.com, and get fil
 
 And that is all URLs were in the beginning.
 
-Almost all the protocols 
+Almost all the other protocols have become obsolete, https has become the world's default.
 
 ## HTTP
 
