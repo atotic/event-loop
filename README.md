@@ -283,7 +283,7 @@ Here are a few rules of thumb:
 
 ### Events
 
-DOM has 250 event types. See https://cs.chromium.org/chromium/src/out/Debug/gen/blink/core/EventTypeNames.h
+DOM has 250 event types. See https://cs.chromium.org/chromium/src/out/Debug/gen/third_party/blink/renderer/core/event_type_names.h
 
 To find out how any particular event is handled, follow the code search links in code searh.
 
